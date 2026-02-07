@@ -172,7 +172,10 @@ fn main() {
         link_lib("stdc++", true);
     }
 
-    // Generate bindings
+    // Generate bindings (only for native builds, skip for cross-compilation)
+    let host = env::var("HOST").unwrap();
+    let is_cross_compiling = target != host;
+
     let include_dir = lib_path.join("include");
     let header_path = if include_dir.exists() {
         include_dir.join("sherpa-ncnn/c-api/c-api.h")
@@ -180,7 +183,21 @@ fn main() {
         lib_path.join("sherpa-ncnn/c-api/c-api.h")
     };
 
-    if header_path.exists() {
+    // Use pre-generated bindings for cross-compilation to avoid header issues
+    if is_cross_compiling {
+        debug_log!(
+            "Cross-compiling ({} -> {}), using pre-generated bindings",
+            host,
+            target
+        );
+        let src_bindings = PathBuf::from(&manifest_dir).join("src/bindings.rs");
+        if src_bindings.exists() {
+            std::fs::copy(&src_bindings, out_dir.join("bindings.rs"))
+                .expect("Failed to copy pre-generated bindings");
+        } else {
+            panic!("Pre-generated bindings not found at {:?}", src_bindings);
+        }
+    } else if header_path.exists() {
         debug_log!("Generating bindings from {}", header_path.display());
 
         let bindings = bindgen::Builder::default()
