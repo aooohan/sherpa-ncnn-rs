@@ -188,8 +188,7 @@ impl Recognizer {
         let c_hotwords = config
             .hotwords_file
             .as_ref()
-            .map(|s| CString::new(s.clone()).ok())
-            .flatten();
+            .and_then(|s| CString::new(s.clone()).ok());
 
         let sys_config = sys::SherpaNcnnRecognizerConfig {
             feat_config: sys::SherpaNcnnFeatureExtractorConfig {

@@ -2,7 +2,7 @@
 
 use std::fs;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Get the cache directory for downloaded binaries
 pub fn get_cache_dir() -> Option<PathBuf> {
@@ -25,7 +25,7 @@ pub fn fetch_file(url: &str) -> Vec<u8> {
 }
 
 /// Extract a .tar.gz archive
-pub fn extract_tgz(data: &[u8], dest: &PathBuf) {
+pub fn extract_tgz(data: &[u8], dest: &Path) {
     use flate2::read::GzDecoder;
     use tar::Archive;
 
@@ -85,7 +85,7 @@ fn get_platform_info(target: &str) -> Option<(&'static str, &'static str)> {
 }
 
 /// Download and extract pre-built binaries
-pub fn download_and_extract(target: &str, out_dir: &PathBuf) -> Option<PathBuf> {
+pub fn download_and_extract(target: &str, out_dir: &Path) -> Option<PathBuf> {
     let (platform, _ext) = get_platform_info(target)?;
 
     // Get the release URL from environment or use default
@@ -97,7 +97,7 @@ pub fn download_and_extract(target: &str, out_dir: &PathBuf) -> Option<PathBuf> 
     let url = format!("{}/{}", base_url, archive_name);
 
     // Check cache first
-    let cache_dir = get_cache_dir().unwrap_or_else(|| out_dir.clone());
+    let cache_dir = get_cache_dir().unwrap_or_else(|| out_dir.to_path_buf());
     let cache_path = cache_dir.join(platform);
 
     if cache_path.exists() && cache_path.join("lib").exists() {

@@ -49,7 +49,7 @@ fn get_cargo_target_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
 }
 
 fn copy_file(src: &Path, dst: &Path) {
-    if let Err(_) = std::fs::hard_link(src, dst) {
+    if std::fs::hard_link(src, dst).is_err() {
         std::fs::copy(src, dst)
             .unwrap_or_else(|_| panic!("Failed to copy {} to {}", src.display(), dst.display()));
     }
@@ -64,24 +64,20 @@ fn extract_lib_names(lib_dir: &Path, is_dynamic: bool, target_os: &str) -> Vec<S
         } else {
             "*.a"
         }
+    } else if is_dynamic {
+        "*.so"
     } else {
-        if is_dynamic {
-            "*.so"
-        } else {
-            "*.a"
-        }
+        "*.a"
     };
 
     let pattern = lib_dir.join(lib_pattern);
     debug_log!("Extract libs from {}", pattern.display());
 
     let mut lib_names = Vec::new();
-    for entry in glob::glob(pattern.to_str().unwrap()).unwrap() {
-        if let Ok(path) = entry {
-            let stem = path.file_stem().unwrap().to_str().unwrap();
-            let lib_name = stem.strip_prefix("lib").unwrap_or(stem);
-            lib_names.push(lib_name.to_string());
-        }
+    for path in glob::glob(pattern.to_str().unwrap()).unwrap().flatten() {
+        let stem = path.file_stem().unwrap().to_str().unwrap();
+        let lib_name = stem.strip_prefix("lib").unwrap_or(stem);
+        lib_names.push(lib_name.to_string());
     }
     lib_names
 }
@@ -97,10 +93,8 @@ fn extract_lib_assets(lib_dir: &Path, target_os: &str) -> Vec<PathBuf> {
 
     let pattern = lib_dir.join(pattern);
     let mut files = Vec::new();
-    for entry in glob::glob(pattern.to_str().unwrap()).unwrap() {
-        if let Ok(path) = entry {
-            files.push(path);
-        }
+    for path in glob::glob(pattern.to_str().unwrap()).unwrap().flatten() {
+        files.push(path);
     }
     files
 }
