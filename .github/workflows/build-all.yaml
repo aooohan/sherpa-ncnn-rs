@@ -22,7 +22,7 @@ jobs:
     name: Android ${{ matrix.abi }}
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         abi: [arm64-v8a, armeabi-v7a, x86_64, x86]
 
@@ -86,19 +86,16 @@ jobs:
     name: iOS ${{ matrix.platform }}
     runs-on: macos-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         platform: [arm64, simulator-arm64, simulator-x86_64]
         include:
           - platform: arm64
             cmake_platform: OS64
-            omp_lib_path: ios-arm64
           - platform: simulator-arm64
             cmake_platform: SIMULATORARM64
-            omp_lib_path: ios-arm64_x86_64-simulator
           - platform: simulator-x86_64
             cmake_platform: SIMULATOR64
-            omp_lib_path: ios-arm64_x86_64-simulator
 
     steps:
       - uses: actions/checkout@v4
@@ -118,6 +115,10 @@ jobs:
           export CMAKE_CXX_COMPILER_LAUNCHER=ccache
           export PATH="/usr/local/opt/ccache/libexec:$PATH"
 
+          # Get absolute path to toolchain
+          SHERPA_NCNN_DIR=$(pwd)/sherpa-ncnn
+          TOOLCHAIN_FILE=$SHERPA_NCNN_DIR/toolchains/ios.toolchain.cmake
+
           cd sherpa-ncnn
           mkdir -p build-ios
           cd build-ios
@@ -125,13 +126,13 @@ jobs:
           wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/openmp-11.0.0.src.tar.xz
           tar -xf openmp-11.0.0.src.tar.xz
 
-          pushd openmp-11.0.0.src
+          cd openmp-11.0.0.src
           sed -i '' '/.size __kmp_unnamed_critical_addr/d' runtime/src/z_Linux_asm.S
           sed -i '' 's/__kmp_unnamed_critical_addr/___kmp_unnamed_critical_addr/g' runtime/src/z_Linux_asm.S
 
           cmake -S . \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-            -DCMAKE_TOOLCHAIN_FILE=../../toolchains/ios.toolchain.cmake \
+            -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=install \
             -DPLATFORM=${{ matrix.cmake_platform }} \
@@ -144,18 +145,25 @@ jobs:
 
           cmake --build ./build -j 4
           cmake --build ./build --target install
-          popd
 
       - name: Build sherpa-ncnn for iOS
         run: |
           export CMAKE_CXX_COMPILER_LAUNCHER=ccache
           export PATH="/usr/local/opt/ccache/libexec:$PATH"
 
-          cd sherpa-ncnn/build-ios
-          export CPLUS_INCLUDE_PATH=$PWD/openmp-11.0.0.src/install/include:$CPLUS_INCLUDE_PATH
+          # Get absolute paths
+          SHERPA_NCNN_DIR=$(pwd)/sherpa-ncnn
+          TOOLCHAIN_FILE=$SHERPA_NCNN_DIR/toolchains/ios.toolchain.cmake
+          BUILD_IOS_DIR=$SHERPA_NCNN_DIR/build-ios
+          OMP_INCLUDE=$BUILD_IOS_DIR/openmp-11.0.0.src/install/include
+          OMP_LIB=$BUILD_IOS_DIR/openmp-11.0.0.src/build/runtime/src/libomp.a
 
-          cmake -S .. \
-            -DCMAKE_TOOLCHAIN_FILE=../toolchains/ios.toolchain.cmake \
+          export CPLUS_INCLUDE_PATH=$OMP_INCLUDE:$CPLUS_INCLUDE_PATH
+
+          cd $BUILD_IOS_DIR
+
+          cmake -S $SHERPA_NCNN_DIR \
+            -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
             -DPLATFORM=${{ matrix.cmake_platform }} \
             -DENABLE_BITCODE=0 \
             -DENABLE_ARC=0 \
@@ -164,7 +172,7 @@ jobs:
             -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
             -DOpenMP_C_LIB_NAMES="libomp" \
             -DOpenMP_CXX_LIB_NAMES="libomp" \
-            -DOpenMP_libomp_LIBRARY="$PWD/openmp-11.0.0.src/build/runtime/src/libomp.a" \
+            -DOpenMP_libomp_LIBRARY="$OMP_LIB" \
             -DCMAKE_INSTALL_PREFIX=./install \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=ON \
@@ -209,7 +217,7 @@ jobs:
     name: macOS ${{ matrix.arch }}
     runs-on: macos-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         arch: [x86_64, arm64]
 
