@@ -1,0 +1,288 @@
+name: Build iOS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-ios.yaml'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-ios.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: build-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone sherpa-ncnn
+        run: |
+          git clone --depth 1 https://github.com/k2-fsa/sherpa-ncnn.git
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ios
+
+      - name: Build OpenMP for iOS
+        run: |
+          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+          export PATH="/usr/local/opt/ccache/libexec:$PATH"
+
+          cd sherpa-ncnn
+          mkdir -p build-ios
+          cd build-ios
+
+          # Download and extract OpenMP
+          wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/openmp-11.0.0.src.tar.xz
+          tar -xf openmp-11.0.0.src.tar.xz
+
+          pushd openmp-11.0.0.src
+          sed -i '' '/.size __kmp_unnamed_critical_addr/d' runtime/src/z_Linux_asm.S
+          sed -i '' 's/__kmp_unnamed_critical_addr/___kmp_unnamed_critical_addr/g' runtime/src/z_Linux_asm.S
+
+          mkdir -p build
+
+          # Build for iOS device (arm64)
+          cmake -S . \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_TOOLCHAIN_FILE=../../toolchains/ios.toolchain.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=install \
+            -DPLATFORM=OS64 \
+            -DENABLE_BITCODE=0 -DENABLE_ARC=0 -DENABLE_VISIBILITY=0 \
+            -DPERL_EXECUTABLE=$(which perl) \
+            -DLIBOMP_ENABLE_SHARED=OFF \
+            -DLIBOMP_OMPT_SUPPORT=OFF \
+            -DLIBOMP_USE_HWLOC=OFF \
+            -B build/os64
+
+          # Build for simulator arm64
+          cmake -S . \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_TOOLCHAIN_FILE=../../toolchains/ios.toolchain.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPLATFORM=SIMULATORARM64 \
+            -DENABLE_BITCODE=0 -DENABLE_ARC=0 -DENABLE_VISIBILITY=0 \
+            -DPERL_EXECUTABLE=$(which perl) \
+            -DLIBOMP_ENABLE_SHARED=OFF \
+            -DLIBOMP_OMPT_SUPPORT=OFF \
+            -DLIBOMP_USE_HWLOC=OFF \
+            -B build/simulator_arm64
+
+          # Build for simulator x86_64
+          cmake -S . \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_TOOLCHAIN_FILE=../../toolchains/ios.toolchain.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPLATFORM=SIMULATOR64 \
+            -DENABLE_BITCODE=0 -DENABLE_ARC=0 -DENABLE_VISIBILITY=0 \
+            -DPERL_EXECUTABLE=$(which perl) \
+            -DLIBOMP_ENABLE_SHARED=OFF \
+            -DLIBOMP_OMPT_SUPPORT=OFF \
+            -DLIBOMP_USE_HWLOC=OFF \
+            -B build/simulator_x86_64
+
+          cmake --build ./build/os64 -j 4
+          cmake --build ./build/os64 --target install
+          cmake --build ./build/simulator_arm64 -j 4
+          cmake --build ./build/simulator_x86_64 -j 4
+
+          # Create fat library for simulator
+          mkdir -p "./build/simulator/openmp"
+          lipo -create build/simulator_x86_64/runtime/src/libomp.a \
+                       build/simulator_arm64/runtime/src/libomp.a \
+               -output build/simulator/openmp/libomp.a
+
+          popd
+
+          # Create OpenMP xcframework
+          rm -rf openmp.xcframework
+          xcodebuild -create-xcframework \
+                -library "openmp-11.0.0.src/build/os64/runtime/src/libomp.a" \
+                -library "openmp-11.0.0.src/build/simulator/openmp/libomp.a" \
+                -output openmp.xcframework
+
+          mkdir -p openmp.xcframework/Headers
+          cp -v openmp-11.0.0.src/install/include/omp.h openmp.xcframework/Headers
+
+      - name: Build sherpa-ncnn for iOS
+        run: |
+          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+          export PATH="/usr/local/opt/ccache/libexec:$PATH"
+
+          cd sherpa-ncnn/build-ios
+          export CPLUS_INCLUDE_PATH=$PWD/openmp.xcframework/Headers/:$CPLUS_INCLUDE_PATH
+
+          # Build for iOS device (arm64)
+          cmake -S .. \
+            -DCMAKE_TOOLCHAIN_FILE=./toolchains/ios.toolchain.cmake \
+            -DPLATFORM=OS64 \
+            -DENABLE_BITCODE=0 \
+            -DENABLE_ARC=0 \
+            -DENABLE_VISIBILITY=0 \
+            -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
+            -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
+            -DOpenMP_C_LIB_NAMES="libomp" \
+            -DOpenMP_CXX_LIB_NAMES="libomp" \
+            -DOpenMP_libomp_LIBRARY="$PWD/openmp.xcframework/ios-arm64/libomp.a" \
+            -DCMAKE_INSTALL_PREFIX=./install \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DSHERPA_NCNN_ENABLE_PYTHON=OFF \
+            -DSHERPA_NCNN_ENABLE_PORTAUDIO=OFF \
+            -DSHERPA_NCNN_ENABLE_JNI=OFF \
+            -DSHERPA_NCNN_ENABLE_BINARY=OFF \
+            -DSHERPA_NCNN_ENABLE_TEST=OFF \
+            -DSHERPA_NCNN_ENABLE_C_API=ON \
+            -B build/os64
+
+          # Build for simulator arm64
+          cmake -S .. \
+            -DCMAKE_TOOLCHAIN_FILE=./toolchains/ios.toolchain.cmake \
+            -DPLATFORM=SIMULATORARM64 \
+            -DENABLE_BITCODE=0 \
+            -DENABLE_ARC=0 \
+            -DENABLE_VISIBILITY=0 \
+            -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
+            -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
+            -DOpenMP_C_LIB_NAMES="libomp" \
+            -DOpenMP_CXX_LIB_NAMES="libomp" \
+            -DOpenMP_libomp_LIBRARY="$PWD/openmp.xcframework/ios-arm64_x86_64-simulator/libomp.a" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DSHERPA_NCNN_ENABLE_PYTHON=OFF \
+            -DSHERPA_NCNN_ENABLE_PORTAUDIO=OFF \
+            -DSHERPA_NCNN_ENABLE_JNI=OFF \
+            -DSHERPA_NCNN_ENABLE_BINARY=OFF \
+            -DSHERPA_NCNN_ENABLE_TEST=OFF \
+            -DSHERPA_NCNN_ENABLE_C_API=ON \
+            -B build/simulator_arm64
+
+          # Build for simulator x86_64
+          cmake -S .. \
+            -DCMAKE_TOOLCHAIN_FILE=./toolchains/ios.toolchain.cmake \
+            -DPLATFORM=SIMULATOR64 \
+            -DENABLE_BITCODE=0 \
+            -DENABLE_ARC=0 \
+            -DENABLE_VISIBILITY=0 \
+            -DOpenMP_C_FLAGS="-Xclang -fopenmp" \
+            -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" \
+            -DOpenMP_C_LIB_NAMES="libomp" \
+            -DOpenMP_CXX_LIB_NAMES="libomp" \
+            -DOpenMP_libomp_LIBRARY="$PWD/openmp.xcframework/ios-arm64_x86_64-simulator/libomp.a" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DSHERPA_NCNN_ENABLE_PYTHON=OFF \
+            -DSHERPA_NCNN_ENABLE_PORTAUDIO=OFF \
+            -DSHERPA_NCNN_ENABLE_JNI=OFF \
+            -DSHERPA_NCNN_ENABLE_BINARY=OFF \
+            -DSHERPA_NCNN_ENABLE_TEST=OFF \
+            -DSHERPA_NCNN_ENABLE_C_API=ON \
+            -B build/simulator_x86_64
+
+          cmake --build build/os64 -j 4
+          cmake --build build/os64 --target install
+          cmake --build build/simulator_arm64 -j 4
+          cmake --build build/simulator_x86_64 -j 4
+
+      - name: Create xcframework
+        run: |
+          cd sherpa-ncnn/build-ios
+
+          # Clean install directory
+          rm -rf install/lib/cmake
+          rm -rf install/lib/pkgconfig
+          rm -rf install/include/ncnn
+          rm -rf install/include/kaldi-native-fbank
+
+          # Create merged static library for device
+          libtool -static -o build/os64/sherpa-ncnn.a \
+            build/os64/lib/libncnn.a \
+            build/os64/lib/libsherpa-ncnn-c-api.a \
+            build/os64/lib/libsherpa-ncnn-core.a \
+            build/os64/lib/libkaldi-native-fbank-core.a \
+            build/os64/lib/libkissfft-float.a
+
+          # Create fat libraries for simulator
+          mkdir -p "build/simulator/lib"
+          for f in libncnn.a libsherpa-ncnn-c-api.a libsherpa-ncnn-core.a libkaldi-native-fbank-core.a libkissfft-float.a; do
+            lipo -create build/simulator_arm64/lib/${f} \
+                         build/simulator_x86_64/lib/${f} \
+                 -output build/simulator/lib/${f}
+          done
+
+          # Create merged static library for simulator
+          libtool -static -o build/simulator/sherpa-ncnn.a \
+            build/simulator/lib/libncnn.a \
+            build/simulator/lib/libsherpa-ncnn-c-api.a \
+            build/simulator/lib/libsherpa-ncnn-core.a \
+            build/simulator/lib/libkaldi-native-fbank-core.a \
+            build/simulator/lib/libkissfft-float.a
+
+          # Create sherpa-ncnn xcframework
+          rm -rf sherpa-ncnn.xcframework
+          xcodebuild -create-xcframework \
+                -library "build/os64/sherpa-ncnn.a" \
+                -library "build/simulator/sherpa-ncnn.a" \
+                -output sherpa-ncnn.xcframework
+
+          # Copy headers
+          mkdir -p sherpa-ncnn.xcframework/Headers
+          cp -av install/include/* sherpa-ncnn.xcframework/Headers
+
+      - name: Package artifacts
+        run: |
+          cd sherpa-ncnn/build-ios
+
+          # Package xcframeworks
+          tar czvf ../../sherpa-ncnn-ios-xcframework.tar.gz sherpa-ncnn.xcframework openmp.xcframework
+
+          # Also package individual static libraries for more flexibility
+          mkdir -p ios-libs/device
+          mkdir -p ios-libs/simulator-arm64
+          mkdir -p ios-libs/simulator-x86_64
+          mkdir -p ios-libs/headers
+
+          cp build/os64/lib/*.a ios-libs/device/
+          cp build/simulator_arm64/lib/*.a ios-libs/simulator-arm64/
+          cp build/simulator_x86_64/lib/*.a ios-libs/simulator-x86_64/
+          cp -r install/include/* ios-libs/headers/
+          cp openmp.xcframework/ios-arm64/libomp.a ios-libs/device/
+          cp openmp.xcframework/ios-arm64_x86_64-simulator/libomp.a ios-libs/simulator-arm64/
+          cp openmp.xcframework/ios-arm64_x86_64-simulator/libomp.a ios-libs/simulator-x86_64/
+          cp openmp.xcframework/Headers/omp.h ios-libs/headers/
+
+          tar czvf ../../sherpa-ncnn-ios-libs.tar.gz ios-libs
+
+      - name: Upload xcframework artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sherpa-ncnn-ios-xcframework
+          path: sherpa-ncnn-ios-xcframework.tar.gz
+
+      - name: Upload libs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sherpa-ncnn-ios-libs
+          path: sherpa-ncnn-ios-libs.tar.gz
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file_glob: true
+          overwrite: true
+          file: sherpa-ncnn-ios-*.tar.gz

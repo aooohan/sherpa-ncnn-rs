@@ -1,0 +1,136 @@
+name: Build Android
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-android.yaml'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-android.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: build-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-android:
+    name: Build Android ${{ matrix.abi }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [arm64-v8a, armeabi-v7a, x86_64, x86]
+        include:
+          - abi: arm64-v8a
+            build_script: build-android-arm64-v8a.sh
+            build_dir: build-android-arm64-v8a
+          - abi: armeabi-v7a
+            build_script: build-android-armv7-eabi.sh
+            build_dir: build-android-armv7-eabi
+          - abi: x86_64
+            build_script: build-android-x86-64.sh
+            build_dir: build-android-x86-64
+          - abi: x86
+            build_script: build-android-x86.sh
+            build_dir: build-android-x86
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone sherpa-ncnn
+        run: |
+          git clone --depth 1 https://github.com/k2-fsa/sherpa-ncnn.git
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: android-${{ matrix.abi }}
+
+      - name: Build for ${{ matrix.abi }}
+        run: |
+          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+          export ANDROID_NDK=$ANDROID_NDK_LATEST_HOME
+
+          cd sherpa-ncnn
+
+          # Modify build script to build static libraries with C API
+          cat > build-android-${{ matrix.abi }}.sh << 'EOF'
+          #!/usr/bin/env bash
+          set -ex
+
+          dir=${{ matrix.build_dir }}
+          mkdir -p $dir
+          cd $dir
+
+          cmake -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK/build/cmake/android.toolchain.cmake" \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DBUILD_SHARED_LIBS=OFF \
+              -DSHERPA_NCNN_ENABLE_PORTAUDIO=OFF \
+              -DSHERPA_NCNN_ENABLE_BINARY=OFF \
+              -DSHERPA_NCNN_ENABLE_TEST=OFF \
+              -DSHERPA_NCNN_ENABLE_C_API=ON \
+              -DSHERPA_NCNN_ENABLE_JNI=OFF \
+              -DSHERPA_NCNN_ENABLE_PYTHON=OFF \
+              -DSHERPA_NCNN_ENABLE_GENERATE_INT8_SCALE_TABLE=OFF \
+              -DCMAKE_INSTALL_PREFIX=./install \
+              -DANDROID_ABI="${{ matrix.abi }}" \
+              -DANDROID_PLATFORM=android-21 ..
+          make VERBOSE=1 -j$(nproc)
+          make install
+          EOF
+
+          chmod +x build-android-${{ matrix.abi }}.sh
+          ./build-android-${{ matrix.abi }}.sh
+
+      - name: Package artifacts
+        run: |
+          cd sherpa-ncnn/${{ matrix.build_dir }}/install
+          tar czvf ../../../sherpa-ncnn-android-${{ matrix.abi }}.tar.gz .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sherpa-ncnn-android-${{ matrix.abi }}
+          path: sherpa-ncnn-android-${{ matrix.abi }}.tar.gz
+
+  package-android:
+    name: Package Android libraries
+    runs-on: ubuntu-latest
+    needs: build-android
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sherpa-ncnn-android-*
+          merge-multiple: true
+
+      - name: Create combined package
+        run: |
+          mkdir -p sherpa-ncnn-android
+          for abi in arm64-v8a armeabi-v7a x86_64 x86; do
+            mkdir -p sherpa-ncnn-android/$abi
+            tar xzf sherpa-ncnn-android-$abi.tar.gz -C sherpa-ncnn-android/$abi
+          done
+          tar czvf sherpa-ncnn-android-all.tar.gz sherpa-ncnn-android
+
+      - name: Upload combined artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sherpa-ncnn-android-all
+          path: sherpa-ncnn-android-all.tar.gz
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file_glob: true
+          overwrite: true
+          file: sherpa-ncnn-android-*.tar.gz
