@@ -475,8 +475,21 @@ jobs:
           New-Item -ItemType Directory -Force -Path package/lib
           New-Item -ItemType Directory -Force -Path package/include
 
-          Copy-Item sherpa-ncnn/build-windows-${{ matrix.arch }}/install/lib/*.lib package/lib/
-          Copy-Item sherpa-ncnn/build-windows-${{ matrix.arch }}/install/bin/*.dll package/lib/
+          # Debug: List install directory structure
+          Get-ChildItem -Recurse sherpa-ncnn/build-windows-${{ matrix.arch }}/install/ | Select-Object FullName
+
+          # Copy libraries - handle both possible locations
+          $libPath = "sherpa-ncnn/build-windows-${{ matrix.arch }}/install/lib"
+          $binPath = "sherpa-ncnn/build-windows-${{ matrix.arch }}/install/bin"
+
+          if (Test-Path $libPath) {
+            Copy-Item "$libPath/*.lib" package/lib/ -ErrorAction SilentlyContinue
+          }
+          if (Test-Path $binPath) {
+            Copy-Item "$binPath/*.dll" package/lib/ -ErrorAction SilentlyContinue
+            Copy-Item "$binPath/*.lib" package/lib/ -ErrorAction SilentlyContinue
+          }
+
           Copy-Item -Recurse sherpa-ncnn/build-windows-${{ matrix.arch }}/install/include/* package/include/
 
           Compress-Archive -Path package/* -DestinationPath sherpa-ncnn-windows-${{ matrix.arch }}.zip
