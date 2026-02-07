@@ -1,5 +1,5 @@
-//! Pre-generated FFI bindings for sherpa-ncnn
-//! These are used when the C headers are not available
+// Pre-generated FFI bindings for sherpa-ncnn
+// These are used when the C headers are not available
 
 use std::os::raw::{c_char, c_float, c_int};
 
