@@ -464,33 +464,60 @@ jobs:
             -DSHERPA_NCNN_ENABLE_JNI=OFF `
             -DSHERPA_NCNN_ENABLE_PYTHON=OFF `
             -DSHERPA_NCNN_ENABLE_GENERATE_INT8_SCALE_TABLE=OFF `
-            -DCMAKE_INSTALL_PREFIX=./install `
+            -DCMAKE_INSTALL_PREFIX=install `
             ..
 
           cmake --build . --config Release -j
           cmake --install . --config Release
+
+          # Debug: Show what was built
+          Write-Host "=== Build directory contents ==="
+          Get-ChildItem -Recurse -Name | Where-Object { $_ -match '\.(dll|lib)$' }
 
       - name: Package artifacts
         run: |
           New-Item -ItemType Directory -Force -Path package/lib
           New-Item -ItemType Directory -Force -Path package/include
 
-          # Debug: List install directory structure
-          Get-ChildItem -Recurse sherpa-ncnn/build-windows-${{ matrix.arch }}/install/ | Select-Object FullName
+          $buildDir = "sherpa-ncnn/build-windows-${{ matrix.arch }}"
+          $installDir = "$buildDir/install"
 
-          # Copy libraries - handle both possible locations
-          $libPath = "sherpa-ncnn/build-windows-${{ matrix.arch }}/install/lib"
-          $binPath = "sherpa-ncnn/build-windows-${{ matrix.arch }}/install/bin"
-
-          if (Test-Path $libPath) {
-            Copy-Item "$libPath/*.lib" package/lib/ -ErrorAction SilentlyContinue
-          }
-          if (Test-Path $binPath) {
-            Copy-Item "$binPath/*.dll" package/lib/ -ErrorAction SilentlyContinue
-            Copy-Item "$binPath/*.lib" package/lib/ -ErrorAction SilentlyContinue
+          # Debug: Show directory structure
+          Write-Host "=== Checking for install directory ==="
+          if (Test-Path $installDir) {
+            Get-ChildItem -Recurse $installDir | Select-Object FullName
+          } else {
+            Write-Host "Install directory not found, looking for built files..."
+            Get-ChildItem -Recurse $buildDir -Include *.dll,*.lib | Select-Object FullName
           }
 
-          Copy-Item -Recurse sherpa-ncnn/build-windows-${{ matrix.arch }}/install/include/* package/include/
+          # Try install directory first
+          if (Test-Path "$installDir/lib") {
+            Copy-Item "$installDir/lib/*.lib" package/lib/ -ErrorAction SilentlyContinue
+          }
+          if (Test-Path "$installDir/bin") {
+            Copy-Item "$installDir/bin/*.dll" package/lib/ -ErrorAction SilentlyContinue
+            Copy-Item "$installDir/bin/*.lib" package/lib/ -ErrorAction SilentlyContinue
+          }
+
+          # Fallback: Copy from Release directory (MSVC default output)
+          if (-not (Get-ChildItem package/lib/*.dll -ErrorAction SilentlyContinue)) {
+            Write-Host "Copying from Release directories..."
+            Get-ChildItem -Recurse "$buildDir" -Filter "*.dll" | Where-Object { $_.DirectoryName -match "Release" } | Copy-Item -Destination package/lib/
+            Get-ChildItem -Recurse "$buildDir" -Filter "*.lib" | Where-Object { $_.DirectoryName -match "Release" } | Copy-Item -Destination package/lib/
+          }
+
+          # Copy headers
+          if (Test-Path "$installDir/include") {
+            Copy-Item -Recurse "$installDir/include/*" package/include/
+          } else {
+            # Fallback: copy from source
+            Copy-Item -Recurse "sherpa-ncnn/sherpa-ncnn/c-api" package/include/sherpa-ncnn/
+          }
+
+          # Verify we have files
+          Write-Host "=== Package contents ==="
+          Get-ChildItem -Recurse package/
 
           Compress-Archive -Path package/* -DestinationPath sherpa-ncnn-windows-${{ matrix.arch }}.zip
 
