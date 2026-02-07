@@ -128,7 +128,7 @@ pub struct SherpaNcnnResult {
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct SherpaNcnnVadModelConfig {
-    pub silero_vad_model: *const c_char,
+    pub model_dir: *const c_char,
     pub threshold: c_float,
     pub min_silence_duration: c_float,
     pub min_speech_duration: c_float,
@@ -141,7 +141,7 @@ pub struct SherpaNcnnVadModelConfig {
 impl Default for SherpaNcnnVadModelConfig {
     fn default() -> Self {
         Self {
-            silero_vad_model: std::ptr::null(),
+            model_dir: std::ptr::null(),
             threshold: 0.5,
             min_silence_duration: 0.5,
             min_speech_duration: 0.25,
@@ -166,50 +166,50 @@ pub struct SherpaNcnnSpeechSegment {
 // ============================================================
 
 extern "C" {
-    pub fn SherpaNcnnCreateRecognizer(
+    pub fn CreateRecognizer(
         config: *const SherpaNcnnRecognizerConfig,
     ) -> *mut SherpaNcnnRecognizer;
 
-    pub fn SherpaNcnnDestroyRecognizer(recognizer: *mut SherpaNcnnRecognizer);
+    pub fn DestroyRecognizer(recognizer: *mut SherpaNcnnRecognizer);
 
-    pub fn SherpaNcnnCreateStream(
+    pub fn CreateStream(
         recognizer: *const SherpaNcnnRecognizer,
     ) -> *mut SherpaNcnnStream;
 
-    pub fn SherpaNcnnDestroyStream(stream: *mut SherpaNcnnStream);
+    pub fn DestroyStream(stream: *mut SherpaNcnnStream);
 
-    pub fn SherpaNcnnAcceptWaveform(
+    pub fn AcceptWaveform(
         stream: *mut SherpaNcnnStream,
         sample_rate: c_float,
         samples: *const c_float,
         n: c_int,
     );
 
-    pub fn SherpaNcnnInputFinished(stream: *mut SherpaNcnnStream);
+    pub fn InputFinished(stream: *mut SherpaNcnnStream);
 
-    pub fn SherpaNcnnIsReady(
+    pub fn IsReady(
         recognizer: *const SherpaNcnnRecognizer,
         stream: *const SherpaNcnnStream,
     ) -> c_int;
 
-    pub fn SherpaNcnnDecode(
+    pub fn Decode(
         recognizer: *const SherpaNcnnRecognizer,
         stream: *mut SherpaNcnnStream,
     );
 
-    pub fn SherpaNcnnGetResult(
+    pub fn GetResult(
         recognizer: *const SherpaNcnnRecognizer,
         stream: *const SherpaNcnnStream,
     ) -> *const SherpaNcnnResult;
 
-    pub fn SherpaNcnnDestroyResult(result: *const SherpaNcnnResult);
+    pub fn DestroyResult(result: *const SherpaNcnnResult);
 
-    pub fn SherpaNcnnReset(
+    pub fn Reset(
         recognizer: *const SherpaNcnnRecognizer,
         stream: *mut SherpaNcnnStream,
     );
 
-    pub fn SherpaNcnnIsEndpoint(
+    pub fn IsEndpoint(
         recognizer: *const SherpaNcnnRecognizer,
         stream: *const SherpaNcnnStream,
     ) -> c_int;
