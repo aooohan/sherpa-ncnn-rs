@@ -1,0 +1,165 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Build and test on desktop platforms with real model
+  test-desktop:
+    name: Test ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache test models
+        uses: actions/cache@v4
+        with:
+          path: test-data/
+          key: test-models-v1
+
+      - name: Download test model and audio
+        run: |
+          mkdir -p test-data
+          cd test-data
+
+          # Download a small streaming model if not cached
+          if [ ! -d "sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16" ]; then
+            echo "Downloading test model..."
+            wget -q https://github.com/k2-fsa/sherpa-ncnn/releases/download/models/sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16.tar.bz2
+            tar xjf sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16.tar.bz2
+            rm sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16.tar.bz2
+          fi
+
+          # Download test audio if not cached
+          if [ ! -f "test.wav" ]; then
+            echo "Downloading test audio..."
+            wget -q -O test.wav https://github.com/k2-fsa/sherpa-ncnn/raw/master/test_wavs/0.wav
+          fi
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Run unit tests
+        run: cargo test --verbose
+
+      - name: Run integration test
+        run: |
+          cargo run --example transcribe -- \
+            test-data/sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16 \
+            test-data/test.wav
+
+  # Check that Android targets compile
+  check-android:
+    name: Check Android ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        target:
+          - aarch64-linux-android
+          - armv7-linux-androideabi
+          - x86_64-linux-android
+          - i686-linux-android
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26b
+
+      - name: Set up cargo config for Android
+        run: |
+          mkdir -p ~/.cargo
+          cat >> ~/.cargo/config.toml << EOF
+          [target.aarch64-linux-android]
+          linker = "${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"
+
+          [target.armv7-linux-androideabi]
+          linker = "${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang"
+
+          [target.x86_64-linux-android]
+          linker = "${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang"
+
+          [target.i686-linux-android]
+          linker = "${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android21-clang"
+          EOF
+
+      - name: Check build
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: cargo check --target ${{ matrix.target }} -p sherpa-ncnn
+
+  # Check that iOS targets compile (macOS only)
+  check-ios:
+    name: Check iOS ${{ matrix.target }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        target:
+          - aarch64-apple-ios
+          - aarch64-apple-ios-sim
+          - x86_64-apple-ios
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Check build
+        run: cargo check --target ${{ matrix.target }} -p sherpa-ncnn
+
+  # Clippy and format checks
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings

@@ -1,0 +1,39 @@
+[package]
+name = "sherpa-ncnn-sys"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Raw FFI bindings to sherpa-ncnn C API"
+keywords = ["audio", "speech-recognition", "sherpa", "ncnn", "asr"]
+build = "build.rs"
+
+[lib]
+name = "sherpa_ncnn_sys"
+path = "src/lib.rs"
+
+[build-dependencies]
+bindgen = "0.69"
+glob = "0.3"
+
+# Download binaries
+ureq = { version = "2.9", optional = true, default-features = false, features = ["tls"] }
+tar = { version = "0.4", optional = true }
+flate2 = { version = "1.0", optional = true }
+sha2 = { version = "0.10", optional = true }
+dirs = { version = "5.0", optional = true }
+serde_json = { version = "1.0", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[features]
+default = ["download-binaries"]
+download-binaries = [
+    "dep:ureq",
+    "dep:tar",
+    "dep:flate2",
+    "dep:sha2",
+    "dep:dirs",
+    "dep:serde_json",
+    "dep:serde",
+]

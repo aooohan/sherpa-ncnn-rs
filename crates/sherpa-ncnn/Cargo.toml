@@ -1,0 +1,24 @@
+[package]
+name = "sherpa-ncnn"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Safe Rust bindings for sherpa-ncnn speech recognition"
+keywords = ["audio", "speech-recognition", "sherpa", "ncnn", "asr"]
+
+[lib]
+name = "sherpa_ncnn"
+path = "src/lib.rs"
+
+[dependencies]
+sherpa-ncnn-sys = { path = "../sherpa-ncnn-sys" }
+thiserror = "1.0"
+
+[dev-dependencies]
+hound = "3.5"
+
+[features]
+default = ["download-binaries"]
+download-binaries = ["sherpa-ncnn-sys/download-binaries"]
