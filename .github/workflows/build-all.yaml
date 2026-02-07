@@ -34,7 +34,7 @@ jobs:
 
       - name: Clone sherpa-ncnn
         run: |
-          git clone --depth 1 https://github.com/k2-fsa/sherpa-ncnn.git
+          git clone --depth 1 https://github.com/aooohan/sherpa-ncnn.git
           echo "SHERPA_NCNN_VERSION=$(grep 'SHERPA_NCNN_VERSION' sherpa-ncnn/CMakeLists.txt | head -1 | cut -d'"' -f2)" >> $GITHUB_ENV
 
       - name: Setup ccache
@@ -105,7 +105,7 @@ jobs:
 
       - name: Clone sherpa-ncnn
         run: |
-          git clone --depth 1 https://github.com/k2-fsa/sherpa-ncnn.git
+          git clone --depth 1 https://github.com/aooohan/sherpa-ncnn.git
           echo "SHERPA_NCNN_VERSION=$(grep 'SHERPA_NCNN_VERSION' sherpa-ncnn/CMakeLists.txt | head -1 | cut -d'"' -f2)" >> $GITHUB_ENV
 
       - name: Setup ccache
@@ -229,7 +229,7 @@ jobs:
 
       - name: Clone sherpa-ncnn
         run: |
-          git clone --depth 1 https://github.com/k2-fsa/sherpa-ncnn.git
+          git clone --depth 1 https://github.com/aooohan/sherpa-ncnn.git
           echo "SHERPA_NCNN_VERSION=$(grep 'SHERPA_NCNN_VERSION' sherpa-ncnn/CMakeLists.txt | head -1 | cut -d'"' -f2)" >> $GITHUB_ENV
 
       - name: Setup ccache
@@ -294,7 +294,7 @@ jobs:
       - name: Get sherpa-ncnn version
         id: version
         run: |
-          git clone --depth 1 https://github.com/k2-fsa/sherpa-ncnn.git
+          git clone --depth 1 https://github.com/aooohan/sherpa-ncnn.git
           VERSION=$(grep 'SHERPA_NCNN_VERSION' sherpa-ncnn/CMakeLists.txt | head -1 | cut -d'"' -f2)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "SHERPA_NCNN_VERSION=$VERSION" >> $GITHUB_ENV
