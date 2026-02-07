@@ -51,15 +51,15 @@ jobs:
           # Download a small streaming model if not cached
           if [ ! -d "sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16" ]; then
             echo "Downloading test model..."
-            wget -q https://github.com/k2-fsa/sherpa-ncnn/releases/download/models/sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16.tar.bz2
-            tar xjf sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16.tar.bz2
-            rm sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16.tar.bz2
+            curl -L -o model.tar.bz2 https://github.com/k2-fsa/sherpa-ncnn/releases/download/models/sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16.tar.bz2
+            tar xjf model.tar.bz2
+            rm model.tar.bz2
           fi
 
           # Download test audio if not cached
           if [ ! -f "test.wav" ]; then
             echo "Downloading test audio..."
-            wget -q -O test.wav https://github.com/k2-fsa/sherpa-ncnn/raw/master/test_wavs/0.wav
+            curl -L -o test.wav https://github.com/k2-fsa/sherpa-ncnn/raw/master/test_wavs/0.wav
           fi
 
       - name: Build
