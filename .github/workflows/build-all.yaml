@@ -17,6 +17,9 @@ concurrency:
   group: build-all-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   build-android:
     name: Android ${{ matrix.abi }}
