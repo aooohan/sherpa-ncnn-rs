@@ -111,7 +111,7 @@ impl Vad {
 
         if ptr.is_null() {
             return Err(Error::VadCreation(
-                "Failed to create VAD (null pointer returned)".into()
+                "Failed to create VAD (null pointer returned)".into(),
             ));
         }
 
@@ -182,24 +182,32 @@ impl Vad {
 
     /// Flush the VAD to process any remaining audio
     pub fn flush(&mut self) {
-        unsafe { sys::SherpaNcnnVoiceActivityDetectorFlush(self.ptr); }
+        unsafe {
+            sys::SherpaNcnnVoiceActivityDetectorFlush(self.ptr);
+        }
     }
 
     /// Reset the VAD state
     pub fn reset(&mut self) {
-        unsafe { sys::SherpaNcnnVoiceActivityDetectorReset(self.ptr); }
+        unsafe {
+            sys::SherpaNcnnVoiceActivityDetectorReset(self.ptr);
+        }
     }
 
     /// Clear the speech segment buffer
     pub fn clear(&mut self) {
-        unsafe { sys::SherpaNcnnVoiceActivityDetectorClear(self.ptr); }
+        unsafe {
+            sys::SherpaNcnnVoiceActivityDetectorClear(self.ptr);
+        }
     }
 }
 
 impl Drop for Vad {
     fn drop(&mut self) {
         if !self.ptr.is_null() {
-            unsafe { sys::SherpaNcnnDestroyVoiceActivityDetector(self.ptr); }
+            unsafe {
+                sys::SherpaNcnnDestroyVoiceActivityDetector(self.ptr);
+            }
         }
     }
 }

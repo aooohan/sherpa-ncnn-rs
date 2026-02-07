@@ -28,15 +28,15 @@
 //! println!("Recognized: {}", result);
 //! ```
 
+mod error;
 mod recognizer;
 mod stream;
 mod vad;
-mod error;
 
-pub use recognizer::{Recognizer, RecognizerConfig, ModelConfig, DecoderConfig, FeatureConfig};
-pub use stream::Stream;
-pub use vad::{Vad, VadConfig, SpeechSegment};
 pub use error::{Error, Result};
+pub use recognizer::{DecoderConfig, FeatureConfig, ModelConfig, Recognizer, RecognizerConfig};
+pub use stream::Stream;
+pub use vad::{SpeechSegment, Vad, VadConfig};
 
 /// Re-export the sys crate for advanced usage
 pub use sherpa_ncnn_sys as sys;

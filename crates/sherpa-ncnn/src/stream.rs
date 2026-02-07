@@ -35,7 +35,9 @@ impl Stream {
 
     /// Signal that no more audio will be provided
     pub fn input_finished(&mut self) {
-        unsafe { sys::SherpaNcnnInputFinished(self.ptr); }
+        unsafe {
+            sys::SherpaNcnnInputFinished(self.ptr);
+        }
     }
 
     /// Check if the recognizer is ready to decode
@@ -45,7 +47,9 @@ impl Stream {
 
     /// Decode one frame
     pub fn decode(&mut self, recognizer: &Recognizer) {
-        unsafe { sys::SherpaNcnnDecode(recognizer.ptr, self.ptr); }
+        unsafe {
+            sys::SherpaNcnnDecode(recognizer.ptr, self.ptr);
+        }
     }
 
     /// Get the current recognition result
@@ -71,7 +75,9 @@ impl Stream {
 
     /// Reset the stream for a new utterance
     pub fn reset(&mut self, recognizer: &Recognizer) {
-        unsafe { sys::SherpaNcnnReset(recognizer.ptr, self.ptr); }
+        unsafe {
+            sys::SherpaNcnnReset(recognizer.ptr, self.ptr);
+        }
     }
 
     /// Check if an endpoint has been detected
@@ -83,7 +89,9 @@ impl Stream {
 impl Drop for Stream {
     fn drop(&mut self) {
         if !self.ptr.is_null() {
-            unsafe { sys::SherpaNcnnDestroyStream(self.ptr); }
+            unsafe {
+                sys::SherpaNcnnDestroyStream(self.ptr);
+            }
         }
     }
 }

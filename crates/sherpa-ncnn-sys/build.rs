@@ -60,9 +60,17 @@ fn extract_lib_names(lib_dir: &Path, is_dynamic: bool, target_os: &str) -> Vec<S
     let lib_pattern = if target_os == "windows" {
         "*.lib"
     } else if target_os == "macos" || target_os == "ios" {
-        if is_dynamic { "*.dylib" } else { "*.a" }
+        if is_dynamic {
+            "*.dylib"
+        } else {
+            "*.a"
+        }
     } else {
-        if is_dynamic { "*.so" } else { "*.a" }
+        if is_dynamic {
+            "*.so"
+        } else {
+            "*.a"
+        }
     };
 
     let pattern = lib_dir.join(lib_pattern);
@@ -144,7 +152,11 @@ fn main() {
     }
 
     // Extract and link libraries
-    let search_dir = if lib_dir.exists() { &lib_dir } else { &lib_path };
+    let search_dir = if lib_dir.exists() {
+        &lib_dir
+    } else {
+        &lib_path
+    };
     let libs = extract_lib_names(search_dir, is_dynamic, &target_os);
 
     debug_log!("Found libraries: {:?}", libs);
@@ -181,10 +193,15 @@ fn main() {
             .expect("Failed to generate bindings");
 
         let bindings_path = out_dir.join("bindings.rs");
-        bindings.write_to_file(&bindings_path).expect("Failed to write bindings");
+        bindings
+            .write_to_file(&bindings_path)
+            .expect("Failed to write bindings");
         debug_log!("Bindings written to {}", bindings_path.display());
     } else {
-        debug_log!("Header not found at {}, using pre-generated bindings", header_path.display());
+        debug_log!(
+            "Header not found at {}, using pre-generated bindings",
+            header_path.display()
+        );
         // Copy pre-generated bindings if header not found
         let src_bindings = PathBuf::from(&manifest_dir).join("src/bindings.rs");
         if src_bindings.exists() {

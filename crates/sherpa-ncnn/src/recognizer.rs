@@ -185,7 +185,8 @@ impl Recognizer {
         let c_decoding_method = CString::new(config.decoder_config.decoding_method.clone())
             .map_err(|_| Error::InvalidConfig("Invalid decoding_method".into()))?;
 
-        let c_hotwords = config.hotwords_file
+        let c_hotwords = config
+            .hotwords_file
             .as_ref()
             .map(|s| CString::new(s.clone()).ok())
             .flatten();
@@ -203,7 +204,11 @@ impl Recognizer {
                 joiner_param: c_joiner_param.as_ptr(),
                 joiner_bin: c_joiner_bin.as_ptr(),
                 tokens: c_tokens.as_ptr(),
-                use_vulkan_compute: if config.model_config.use_vulkan_compute { 1 } else { 0 },
+                use_vulkan_compute: if config.model_config.use_vulkan_compute {
+                    1
+                } else {
+                    0
+                },
                 num_threads: config.model_config.num_threads,
             },
             decoder_config: sys::SherpaNcnnDecoderConfig {
@@ -214,7 +219,10 @@ impl Recognizer {
             rule1_min_trailing_silence: config.rule1_min_trailing_silence,
             rule2_min_trailing_silence: config.rule2_min_trailing_silence,
             rule3_min_utterance_length: config.rule3_min_utterance_length,
-            hotwords_file: c_hotwords.as_ref().map(|s| s.as_ptr()).unwrap_or(ptr::null()),
+            hotwords_file: c_hotwords
+                .as_ref()
+                .map(|s| s.as_ptr())
+                .unwrap_or(ptr::null()),
             hotwords_score: config.hotwords_score,
         };
 
@@ -235,11 +243,14 @@ impl Recognizer {
 
         if ptr.is_null() {
             return Err(Error::RecognizerCreation(
-                "Failed to create recognizer (null pointer returned)".into()
+                "Failed to create recognizer (null pointer returned)".into(),
             ));
         }
 
-        Ok(Self { ptr, _strings: strings })
+        Ok(Self {
+            ptr,
+            _strings: strings,
+        })
     }
 
     /// Create a new stream for recognition
@@ -248,7 +259,7 @@ impl Recognizer {
 
         if ptr.is_null() {
             return Err(Error::StreamCreation(
-                "Failed to create stream (null pointer returned)".into()
+                "Failed to create stream (null pointer returned)".into(),
             ));
         }
 
@@ -275,7 +286,9 @@ impl Recognizer {
 impl Drop for Recognizer {
     fn drop(&mut self) {
         if !self.ptr.is_null() {
-            unsafe { sys::SherpaNcnnDestroyRecognizer(self.ptr); }
+            unsafe {
+                sys::SherpaNcnnDestroyRecognizer(self.ptr);
+            }
         }
     }
 }

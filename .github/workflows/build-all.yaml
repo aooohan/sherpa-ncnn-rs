@@ -1,16 +1,6 @@
 name: Build All Platforms
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/build-all.yaml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/build-all.yaml'
   workflow_dispatch:
 
 concurrency:
