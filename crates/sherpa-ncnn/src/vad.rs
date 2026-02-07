@@ -17,8 +17,8 @@ pub struct SpeechSegment {
 /// VAD configuration
 #[derive(Debug, Clone)]
 pub struct VadConfig {
-    /// Path to silero VAD model file
-    pub silero_vad_model: String,
+    /// Path to silero VAD model directory
+    pub model_dir: String,
     /// Detection threshold (default: 0.5)
     pub threshold: f32,
     /// Minimum silence duration in seconds (default: 0.5)
@@ -39,7 +39,7 @@ impl VadConfig {
     /// Create a new VAD config with the given model path
     pub fn new<P: AsRef<Path>>(model_path: P) -> Self {
         Self {
-            silero_vad_model: model_path.as_ref().to_string_lossy().to_string(),
+            model_dir: model_path.as_ref().to_string_lossy().to_string(),
             threshold: 0.5,
             min_silence_duration: 0.5,
             min_speech_duration: 0.25,
@@ -91,11 +91,11 @@ impl Vad {
     /// * `config` - VAD configuration
     /// * `buffer_size_in_seconds` - Size of the internal buffer in seconds (default: 60.0)
     pub fn new(config: VadConfig, buffer_size_in_seconds: f32) -> Result<Self> {
-        let c_model = CString::new(config.silero_vad_model.clone())
+        let c_model = CString::new(config.model_dir.clone())
             .map_err(|_| Error::InvalidConfig("Invalid model path".into()))?;
 
         let sys_config = sys::SherpaNcnnVadModelConfig {
-            silero_vad_model: c_model.as_ptr(),
+            model_dir: c_model.as_ptr(),
             threshold: config.threshold,
             min_silence_duration: config.min_silence_duration,
             min_speech_duration: config.min_speech_duration,

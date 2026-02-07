@@ -1,7 +1,6 @@
 //! Build script for sherpa-ncnn-sys
 //! Handles downloading pre-built binaries and generating FFI bindings
 
-use std::collections::HashMap;
 use std::env;
 use std::path::{Path, PathBuf};
 

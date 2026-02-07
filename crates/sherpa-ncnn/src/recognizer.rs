@@ -239,7 +239,7 @@ impl Recognizer {
             strings.push(s);
         }
 
-        let ptr = unsafe { sys::SherpaNcnnCreateRecognizer(&sys_config) };
+        let ptr = unsafe { sys::CreateRecognizer(&sys_config) };
 
         if ptr.is_null() {
             return Err(Error::RecognizerCreation(
@@ -255,7 +255,7 @@ impl Recognizer {
 
     /// Create a new stream for recognition
     pub fn create_stream(&self) -> Result<Stream> {
-        let ptr = unsafe { sys::SherpaNcnnCreateStream(self.ptr) };
+        let ptr = unsafe { sys::CreateStream(self.ptr) };
 
         if ptr.is_null() {
             return Err(Error::StreamCreation(
@@ -287,7 +287,7 @@ impl Drop for Recognizer {
     fn drop(&mut self) {
         if !self.ptr.is_null() {
             unsafe {
-                sys::SherpaNcnnDestroyRecognizer(self.ptr);
+                sys::DestroyRecognizer(self.ptr);
             }
         }
     }

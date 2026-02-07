@@ -24,7 +24,7 @@ impl Stream {
     /// * `samples` - Audio samples as f32, normalized to [-1, 1]
     pub fn accept_waveform(&mut self, sample_rate: f32, samples: &[f32]) {
         unsafe {
-            sys::SherpaNcnnAcceptWaveform(
+            sys::AcceptWaveform(
                 self.ptr,
                 sample_rate,
                 samples.as_ptr(),
@@ -36,26 +36,26 @@ impl Stream {
     /// Signal that no more audio will be provided
     pub fn input_finished(&mut self) {
         unsafe {
-            sys::SherpaNcnnInputFinished(self.ptr);
+            sys::InputFinished(self.ptr);
         }
     }
 
     /// Check if the recognizer is ready to decode
     pub fn is_ready(&self, recognizer: &Recognizer) -> bool {
-        unsafe { sys::SherpaNcnnIsReady(recognizer.ptr, self.ptr) != 0 }
+        unsafe { sys::IsReady(recognizer.ptr, self.ptr) != 0 }
     }
 
     /// Decode one frame
     pub fn decode(&mut self, recognizer: &Recognizer) {
         unsafe {
-            sys::SherpaNcnnDecode(recognizer.ptr, self.ptr);
+            sys::Decode(recognizer.ptr, self.ptr);
         }
     }
 
     /// Get the current recognition result
     pub fn get_result(&self, recognizer: &Recognizer) -> String {
         unsafe {
-            let result_ptr = sys::SherpaNcnnGetResult(recognizer.ptr, self.ptr);
+            let result_ptr = sys::GetResult(recognizer.ptr, self.ptr);
             if result_ptr.is_null() {
                 return String::new();
             }
@@ -68,7 +68,7 @@ impl Stream {
                     .into_owned()
             };
 
-            sys::SherpaNcnnDestroyResult(result_ptr);
+            sys::DestroyResult(result_ptr);
             text
         }
     }
@@ -76,13 +76,13 @@ impl Stream {
     /// Reset the stream for a new utterance
     pub fn reset(&mut self, recognizer: &Recognizer) {
         unsafe {
-            sys::SherpaNcnnReset(recognizer.ptr, self.ptr);
+            sys::Reset(recognizer.ptr, self.ptr);
         }
     }
 
     /// Check if an endpoint has been detected
     pub fn is_endpoint(&self, recognizer: &Recognizer) -> bool {
-        unsafe { sys::SherpaNcnnIsEndpoint(recognizer.ptr, self.ptr) != 0 }
+        unsafe { sys::IsEndpoint(recognizer.ptr, self.ptr) != 0 }
     }
 }
 
@@ -90,7 +90,7 @@ impl Drop for Stream {
     fn drop(&mut self) {
         if !self.ptr.is_null() {
             unsafe {
-                sys::SherpaNcnnDestroyStream(self.ptr);
+                sys::DestroyStream(self.ptr);
             }
         }
     }

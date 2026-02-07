@@ -1,33 +1,12 @@
 //! Download pre-built sherpa-ncnn binaries
 
-use serde::Deserialize;
-use sha2::{Digest, Sha256};
-use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::fs;
+use std::io::Read;
 use std::path::PathBuf;
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct Dist {
-    pub name: String,
-    pub url: String,
-    pub checksum: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct DistTable {
-    pub targets: std::collections::HashMap<String, Dist>,
-}
 
 /// Get the cache directory for downloaded binaries
 pub fn get_cache_dir() -> Option<PathBuf> {
     dirs::cache_dir().map(|d| d.join("sherpa-ncnn-rs"))
-}
-
-/// Calculate SHA256 hash of data
-pub fn sha256(data: &[u8]) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(data);
-    format!("{:x}", hasher.finalize())
 }
 
 /// Download a file from URL
@@ -107,7 +86,7 @@ fn get_platform_info(target: &str) -> Option<(&'static str, &'static str)> {
 
 /// Download and extract pre-built binaries
 pub fn download_and_extract(target: &str, out_dir: &PathBuf) -> Option<PathBuf> {
-    let platform = get_platform_name(target)?;
+    let (platform, _ext) = get_platform_info(target)?;
 
     // Get the release URL from environment or use default
     let base_url = std::env::var("SHERPA_NCNN_RELEASE_URL").unwrap_or_else(|_| {
