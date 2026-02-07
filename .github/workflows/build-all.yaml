@@ -454,6 +454,8 @@ jobs:
           mkdir build-windows-${{ matrix.arch }}
           cd build-windows-${{ matrix.arch }}
 
+          $installPath = "$PWD\install"
+
           cmake `
             -DCMAKE_BUILD_TYPE=Release `
             -DBUILD_SHARED_LIBS=ON `
@@ -464,15 +466,14 @@ jobs:
             -DSHERPA_NCNN_ENABLE_JNI=OFF `
             -DSHERPA_NCNN_ENABLE_PYTHON=OFF `
             -DSHERPA_NCNN_ENABLE_GENERATE_INT8_SCALE_TABLE=OFF `
-            -DCMAKE_INSTALL_PREFIX=install `
+            "-DCMAKE_INSTALL_PREFIX=$installPath" `
             ..
 
           cmake --build . --config Release -j
           cmake --install . --config Release
 
-          # Debug: Show what was built
-          Write-Host "=== Build directory contents ==="
-          Get-ChildItem -Recurse -Name | Where-Object { $_ -match '\.(dll|lib)$' }
+          Write-Host "=== Install directory contents ==="
+          Get-ChildItem -Recurse install/ -ErrorAction SilentlyContinue
 
       - name: Package artifacts
         run: |
