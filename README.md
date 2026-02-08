@@ -145,10 +145,10 @@ Run the examples with:
 
 ```bash
 # Offline transcription
-cargo run --example transcribe -- ./path/to/model ./audio.wav
+cargo run -p sherpa-ncnn --example transcribe -- ./path/to/model ./audio.wav
 
 # Streaming recognition
-cargo run --example streaming -- ./path/to/model ./audio.wav
+cargo run -p sherpa-ncnn --example streaming -- ./path/to/model ./audio.wav
 ```
 
 ## Building from Source
