@@ -43,7 +43,7 @@ jobs:
           path: test-data/
           key: test-models-v1
 
-      - name: Download test model and audio
+      - name: Download test model
         run: |
           mkdir -p test-data
           cd test-data
@@ -56,12 +56,6 @@ jobs:
             rm model.tar.bz2
           fi
 
-          # Download test audio if not cached
-          if [ ! -f "test.wav" ]; then
-            echo "Downloading test audio..."
-            curl -L -o test.wav https://github.com/k2-fsa/sherpa-ncnn/raw/master/test_wavs/0.wav
-          fi
-
       - name: Build
         run: cargo build --verbose
 
@@ -72,7 +66,7 @@ jobs:
         run: |
           cargo run -p sherpa-ncnn --example transcribe -- \
             test-data/sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16 \
-            test-data/test.wav
+            test-data/sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16/test_wavs/0.wav
 
   # Check that Android targets compile
   check-android:
