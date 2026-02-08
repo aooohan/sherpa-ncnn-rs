@@ -70,7 +70,7 @@ jobs:
 
       - name: Run integration test
         run: |
-          cargo run --example transcribe -- \
+          cargo run -p sherpa-ncnn --example transcribe -- \
             test-data/sherpa-ncnn-streaming-zipformer-small-bilingual-zh-en-2023-02-16 \
             test-data/test.wav
 

@@ -22,3 +22,11 @@ hound = "3.5"
 [features]
 default = ["download-binaries"]
 download-binaries = ["sherpa-ncnn-sys/download-binaries"]
+
+[[example]]
+name = "transcribe"
+path = "../../examples/transcribe.rs"
+
+[[example]]
+name = "streaming"
+path = "../../examples/streaming.rs"
