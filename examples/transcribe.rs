@@ -22,9 +22,7 @@ fn read_wav_file(path: &str) -> Result<(Vec<f32>, u32), Box<dyn std::error::Erro
                 .map(|s| s.unwrap() as f32 / max_val)
                 .collect()
         }
-        hound::SampleFormat::Float => {
-            reader.samples::<f32>().map(|s| s.unwrap()).collect()
-        }
+        hound::SampleFormat::Float => reader.samples::<f32>().map(|s| s.unwrap()).collect(),
     };
 
     Ok((samples, spec.sample_rate))
@@ -36,7 +34,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("Usage: {} <model_dir> <wav_file>", args[0]);
         eprintln!();
         eprintln!("Example:");
-        eprintln!("  {} ./sherpa-ncnn-streaming-zipformer-bilingual-zh-en-2023-02-13 test.wav", args[0]);
+        eprintln!(
+            "  {} ./sherpa-ncnn-streaming-zipformer-bilingual-zh-en-2023-02-13 test.wav",
+            args[0]
+        );
         std::process::exit(1);
     }
 
@@ -49,7 +50,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read WAV file
     let (samples, sample_rate) = read_wav_file(wav_file)?;
     println!("Sample rate: {} Hz", sample_rate);
-    println!("Duration: {:.2} seconds", samples.len() as f32 / sample_rate as f32);
+    println!(
+        "Duration: {:.2} seconds",
+        samples.len() as f32 / sample_rate as f32
+    );
 
     // Create recognizer
     let config = RecognizerConfig::new(model_dir)

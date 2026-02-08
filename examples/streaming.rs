@@ -25,9 +25,7 @@ fn read_wav_file(path: &str) -> Result<(Vec<f32>, u32), Box<dyn std::error::Erro
                 .map(|s| s.unwrap() as f32 / max_val)
                 .collect()
         }
-        hound::SampleFormat::Float => {
-            reader.samples::<f32>().map(|s| s.unwrap()).collect()
-        }
+        hound::SampleFormat::Float => reader.samples::<f32>().map(|s| s.unwrap()).collect(),
     };
 
     Ok((samples, spec.sample_rate))
@@ -70,7 +68,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Get partial result
         let result = stream.get_result(&recognizer);
         if result != last_result {
-            println!("[{:.1}s] {}", (i * chunk_size) as f32 / sample_rate as f32, result);
+            println!(
+                "[{:.1}s] {}",
+                (i * chunk_size) as f32 / sample_rate as f32,
+                result
+            );
             last_result = result;
         }
 
