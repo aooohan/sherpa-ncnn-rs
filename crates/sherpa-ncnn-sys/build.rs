@@ -114,7 +114,8 @@ fn main() {
     debug_log!("TARGET_OS: {}", target_os);
     debug_log!("OUT_DIR: {}", out_dir.display());
 
-    let is_dynamic = true; // Always use dynamic linking for sherpa-ncnn
+    // iOS requires static linking for Flutter plugins
+    let is_dynamic = target_os != "ios";
 
     // Try to get library path from environment or download
     let lib_path: Option<PathBuf> = if let Ok(path) = env::var("SHERPA_NCNN_LIB_PATH") {
