@@ -3,6 +3,7 @@
 
 use std::env;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 #[path = "src/download_binaries.rs"]
 #[cfg(feature = "download-binaries")]
@@ -55,7 +56,7 @@ fn copy_file(src: &Path, dst: &Path) {
     }
 }
 
-fn extract_lib_names(lib_dir: &Path, is_dynamic: bool, target_os: &str) -> Vec<String> {
+fn extract_lib_paths(lib_dir: &Path, is_dynamic: bool, target_os: &str) -> Vec<PathBuf> {
     let lib_pattern = if target_os == "windows" {
         "*.lib"
     } else if target_os == "macos" || target_os == "ios" {
@@ -73,13 +74,21 @@ fn extract_lib_names(lib_dir: &Path, is_dynamic: bool, target_os: &str) -> Vec<S
     let pattern = lib_dir.join(lib_pattern);
     debug_log!("Extract libs from {}", pattern.display());
 
-    let mut lib_names = Vec::new();
+    let mut lib_paths = Vec::new();
     for path in glob::glob(pattern.to_str().unwrap()).unwrap().flatten() {
-        let stem = path.file_stem().unwrap().to_str().unwrap();
-        let lib_name = stem.strip_prefix("lib").unwrap_or(stem);
-        lib_names.push(lib_name.to_string());
+        lib_paths.push(path);
     }
-    lib_names
+    lib_paths
+}
+
+fn extract_lib_names(lib_dir: &Path, is_dynamic: bool, target_os: &str) -> Vec<String> {
+    extract_lib_paths(lib_dir, is_dynamic, target_os)
+        .iter()
+        .map(|path| {
+            let stem = path.file_stem().unwrap().to_str().unwrap();
+            stem.strip_prefix("lib").unwrap_or(stem).to_string()
+        })
+        .collect()
 }
 
 fn extract_lib_assets(lib_dir: &Path, target_os: &str) -> Vec<PathBuf> {
@@ -97,6 +106,59 @@ fn extract_lib_assets(lib_dir: &Path, target_os: &str) -> Vec<PathBuf> {
         files.push(path);
     }
     files
+}
+
+/// Merge multiple static libraries into one using libtool (macOS/iOS) or ar (Linux)
+fn merge_static_libs(lib_paths: &[PathBuf], output: &Path, target_os: &str) -> bool {
+    if lib_paths.is_empty() {
+        return false;
+    }
+
+    debug_log!("Merging {} static libs into {}", lib_paths.len(), output.display());
+
+    let status = if target_os == "macos" || target_os == "ios" {
+        Command::new("libtool")
+            .arg("-static")
+            .arg("-o")
+            .arg(output)
+            .args(lib_paths)
+            .status()
+    } else {
+        // For Linux/Android, use ar with MRI script
+        let mri_script = lib_paths
+            .iter()
+            .map(|p| format!("ADDLIB {}", p.display()))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let mri_content = format!(
+            "CREATE {}\n{}\nSAVE\nEND\n",
+            output.display(),
+            mri_script
+        );
+
+        let mri_path = output.with_extension("mri");
+        std::fs::write(&mri_path, &mri_content).expect("Failed to write MRI script");
+
+        Command::new("ar")
+            .arg("-M")
+            .stdin(std::fs::File::open(&mri_path).unwrap())
+            .status()
+    };
+
+    match status {
+        Ok(s) if s.success() => {
+            debug_log!("Successfully merged static libs");
+            true
+        }
+        Ok(s) => {
+            debug_log!("Failed to merge static libs, exit code: {:?}", s.code());
+            false
+        }
+        Err(e) => {
+            debug_log!("Failed to run merge command: {}", e);
+            false
+        }
+    }
 }
 
 fn main() {
@@ -151,12 +213,33 @@ fn main() {
     } else {
         &lib_path
     };
-    let libs = extract_lib_names(search_dir, is_dynamic, &target_os);
 
-    debug_log!("Found libraries: {:?}", libs);
+    // For static builds (iOS), merge all static libs into one bundled library
+    if !is_dynamic {
+        let lib_paths = extract_lib_paths(search_dir, is_dynamic, &target_os);
+        debug_log!("Found static libraries: {:?}", lib_paths);
 
-    for lib in &libs {
-        link_lib(lib, is_dynamic);
+        if !lib_paths.is_empty() {
+            let bundled_lib = out_dir.join("libsherpa-ncnn-rs.a");
+            if merge_static_libs(&lib_paths, &bundled_lib, &target_os) {
+                add_search_path(&out_dir);
+                link_lib("sherpa-ncnn-rs", false);
+            } else {
+                // Fallback: link individual libraries
+                debug_log!("Merge failed, falling back to individual linking");
+                let libs = extract_lib_names(search_dir, is_dynamic, &target_os);
+                for lib in &libs {
+                    link_lib(lib, is_dynamic);
+                }
+            }
+        }
+    } else {
+        // Dynamic linking: link each library individually
+        let libs = extract_lib_names(search_dir, is_dynamic, &target_os);
+        debug_log!("Found libraries: {:?}", libs);
+        for lib in &libs {
+            link_lib(lib, is_dynamic);
+        }
     }
 
     // Platform-specific linking
