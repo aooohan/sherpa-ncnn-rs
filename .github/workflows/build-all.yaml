@@ -191,10 +191,9 @@ jobs:
 
           cd sherpa-ncnn/build-ios
 
-          # Merge all static libraries into one using libtool
-          libtool -static -o ../../package/lib/libsherpa-ncnn.a \
-            build/lib/*.a \
-            openmp-11.0.0.src/build/runtime/src/libomp.a
+          # Copy all static libraries (will be merged by build.rs)
+          cp build/lib/*.a ../../package/lib/
+          cp openmp-11.0.0.src/build/runtime/src/libomp.a ../../package/lib/
 
           # Copy headers
           cp -r install/include/* ../../package/include/
