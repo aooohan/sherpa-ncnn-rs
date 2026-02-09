@@ -172,7 +172,7 @@ jobs:
             -DOpenMP_libomp_LIBRARY="$OMP_LIB" \
             -DCMAKE_INSTALL_PREFIX=./install \
             -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_SHARED_LIBS=ON \
+            -DBUILD_SHARED_LIBS=OFF \
             -DSHERPA_NCNN_ENABLE_PYTHON=OFF \
             -DSHERPA_NCNN_ENABLE_PORTAUDIO=OFF \
             -DSHERPA_NCNN_ENABLE_JNI=OFF \
@@ -191,8 +191,8 @@ jobs:
 
           cd sherpa-ncnn/build-ios
 
-          # Copy libraries (dylib or static)
-          cp build/lib/*.dylib ../../package/lib/ 2>/dev/null || cp build/lib/*.a ../../package/lib/ || true
+          # Copy libraries (static for iOS)
+          cp build/lib/*.a ../../package/lib/ 2>/dev/null || true
 
           # Copy OpenMP
           cp openmp-11.0.0.src/build/runtime/src/libomp.a ../../package/lib/
