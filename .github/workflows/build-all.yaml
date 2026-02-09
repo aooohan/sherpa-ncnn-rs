@@ -428,105 +428,105 @@ jobs:
   # ============================================================
   # Windows Builds
   # ============================================================
-  build-windows:
-    name: Windows ${{ matrix.arch }}
-    runs-on: windows-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        arch: [x64]
+  # build-windows:
+  #   name: Windows ${{ matrix.arch }}
+  #   runs-on: windows-latest
+  #   strategy:
+  #     fail-fast: true
+  #     matrix:
+  #       arch: [x64]
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Clone sherpa-ncnn
-        run: |
-          git clone --depth 1 https://github.com/aooohan/sherpa-ncnn.git
+  #     - name: Clone sherpa-ncnn
+  #       run: |
+  #         git clone --depth 1 https://github.com/aooohan/sherpa-ncnn.git
 
-      - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.arch }}
+  #     - name: Setup MSVC
+  #       uses: ilammy/msvc-dev-cmd@v1
+  #       with:
+  #         arch: ${{ matrix.arch }}
 
-      - name: Build for ${{ matrix.arch }}
-        run: |
-          cd sherpa-ncnn
-          mkdir build-windows-${{ matrix.arch }}
-          cd build-windows-${{ matrix.arch }}
+  #     - name: Build for ${{ matrix.arch }}
+  #       run: |
+  #         cd sherpa-ncnn
+  #         mkdir build-windows-${{ matrix.arch }}
+  #         cd build-windows-${{ matrix.arch }}
 
-          $installPath = "$PWD\install"
+  #         $installPath = "$PWD\install"
 
-          cmake `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DBUILD_SHARED_LIBS=ON `
-            -DSHERPA_NCNN_ENABLE_PORTAUDIO=OFF `
-            -DSHERPA_NCNN_ENABLE_BINARY=OFF `
-            -DSHERPA_NCNN_ENABLE_TEST=OFF `
-            -DSHERPA_NCNN_ENABLE_C_API=ON `
-            -DSHERPA_NCNN_ENABLE_JNI=OFF `
-            -DSHERPA_NCNN_ENABLE_PYTHON=OFF `
-            -DSHERPA_NCNN_ENABLE_GENERATE_INT8_SCALE_TABLE=OFF `
-            "-DCMAKE_INSTALL_PREFIX=$installPath" `
-            ..
+  #         cmake `
+  #           -DCMAKE_BUILD_TYPE=Release `
+  #           -DBUILD_SHARED_LIBS=ON `
+  #           -DSHERPA_NCNN_ENABLE_PORTAUDIO=OFF `
+  #           -DSHERPA_NCNN_ENABLE_BINARY=OFF `
+  #           -DSHERPA_NCNN_ENABLE_TEST=OFF `
+  #           -DSHERPA_NCNN_ENABLE_C_API=ON `
+  #           -DSHERPA_NCNN_ENABLE_JNI=OFF `
+  #           -DSHERPA_NCNN_ENABLE_PYTHON=OFF `
+  #           -DSHERPA_NCNN_ENABLE_GENERATE_INT8_SCALE_TABLE=OFF `
+  #           "-DCMAKE_INSTALL_PREFIX=$installPath" `
+  #           ..
 
-          cmake --build . --config Release -j
-          cmake --install . --config Release
+  #         cmake --build . --config Release -j
+  #         cmake --install . --config Release
 
-          Write-Host "=== Install directory contents ==="
-          Get-ChildItem -Recurse install/ -ErrorAction SilentlyContinue
+  #         Write-Host "=== Install directory contents ==="
+  #         Get-ChildItem -Recurse install/ -ErrorAction SilentlyContinue
 
-      - name: Package artifacts
-        run: |
-          New-Item -ItemType Directory -Force -Path package/lib
-          New-Item -ItemType Directory -Force -Path package/include
+  #     - name: Package artifacts
+  #       run: |
+  #         New-Item -ItemType Directory -Force -Path package/lib
+  #         New-Item -ItemType Directory -Force -Path package/include
 
-          $buildDir = "sherpa-ncnn/build-windows-${{ matrix.arch }}"
-          $installDir = "$buildDir/install"
+  #         $buildDir = "sherpa-ncnn/build-windows-${{ matrix.arch }}"
+  #         $installDir = "$buildDir/install"
 
-          # Debug: Show directory structure
-          Write-Host "=== Checking for install directory ==="
-          if (Test-Path $installDir) {
-            Get-ChildItem -Recurse $installDir | Select-Object FullName
-          } else {
-            Write-Host "Install directory not found, looking for built files..."
-            Get-ChildItem -Recurse $buildDir -Include *.dll,*.lib | Select-Object FullName
-          }
+  #         # Debug: Show directory structure
+  #         Write-Host "=== Checking for install directory ==="
+  #         if (Test-Path $installDir) {
+  #           Get-ChildItem -Recurse $installDir | Select-Object FullName
+  #         } else {
+  #           Write-Host "Install directory not found, looking for built files..."
+  #           Get-ChildItem -Recurse $buildDir -Include *.dll,*.lib | Select-Object FullName
+  #         }
 
-          # Try install directory first
-          if (Test-Path "$installDir/lib") {
-            Copy-Item "$installDir/lib/*.lib" package/lib/ -ErrorAction SilentlyContinue
-          }
-          if (Test-Path "$installDir/bin") {
-            Copy-Item "$installDir/bin/*.dll" package/lib/ -ErrorAction SilentlyContinue
-            Copy-Item "$installDir/bin/*.lib" package/lib/ -ErrorAction SilentlyContinue
-          }
+  #         # Try install directory first
+  #         if (Test-Path "$installDir/lib") {
+  #           Copy-Item "$installDir/lib/*.lib" package/lib/ -ErrorAction SilentlyContinue
+  #         }
+  #         if (Test-Path "$installDir/bin") {
+  #           Copy-Item "$installDir/bin/*.dll" package/lib/ -ErrorAction SilentlyContinue
+  #           Copy-Item "$installDir/bin/*.lib" package/lib/ -ErrorAction SilentlyContinue
+  #         }
 
-          # Fallback: Copy from Release directory (MSVC default output)
-          if (-not (Get-ChildItem package/lib/*.dll -ErrorAction SilentlyContinue)) {
-            Write-Host "Copying from Release directories..."
-            Get-ChildItem -Recurse "$buildDir" -Filter "*.dll" | Where-Object { $_.DirectoryName -match "Release" } | Copy-Item -Destination package/lib/
-            Get-ChildItem -Recurse "$buildDir" -Filter "*.lib" | Where-Object { $_.DirectoryName -match "Release" } | Copy-Item -Destination package/lib/
-          }
+  #         # Fallback: Copy from Release directory (MSVC default output)
+  #         if (-not (Get-ChildItem package/lib/*.dll -ErrorAction SilentlyContinue)) {
+  #           Write-Host "Copying from Release directories..."
+  #           Get-ChildItem -Recurse "$buildDir" -Filter "*.dll" | Where-Object { $_.DirectoryName -match "Release" } | Copy-Item -Destination package/lib/
+  #           Get-ChildItem -Recurse "$buildDir" -Filter "*.lib" | Where-Object { $_.DirectoryName -match "Release" } | Copy-Item -Destination package/lib/
+  #         }
 
-          # Copy headers
-          if (Test-Path "$installDir/include") {
-            Copy-Item -Recurse "$installDir/include/*" package/include/
-          } else {
-            # Fallback: copy from source
-            Copy-Item -Recurse "sherpa-ncnn/sherpa-ncnn/c-api" package/include/sherpa-ncnn/
-          }
+  #         # Copy headers
+  #         if (Test-Path "$installDir/include") {
+  #           Copy-Item -Recurse "$installDir/include/*" package/include/
+  #         } else {
+  #           # Fallback: copy from source
+  #           Copy-Item -Recurse "sherpa-ncnn/sherpa-ncnn/c-api" package/include/sherpa-ncnn/
+  #         }
 
-          # Verify we have files
-          Write-Host "=== Package contents ==="
-          Get-ChildItem -Recurse package/
+  #         # Verify we have files
+  #         Write-Host "=== Package contents ==="
+  #         Get-ChildItem -Recurse package/
 
-          Compress-Archive -Path package/* -DestinationPath sherpa-ncnn-windows-${{ matrix.arch }}.zip
+  #         Compress-Archive -Path package/* -DestinationPath sherpa-ncnn-windows-${{ matrix.arch }}.zip
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sherpa-ncnn-windows-${{ matrix.arch }}
-          path: sherpa-ncnn-windows-${{ matrix.arch }}.zip
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: sherpa-ncnn-windows-${{ matrix.arch }}
+  #         path: sherpa-ncnn-windows-${{ matrix.arch }}.zip
 
   # ============================================================
   # Create Release
@@ -534,7 +534,7 @@ jobs:
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-android, build-ios, build-macos, build-linux, build-linux-cross, build-windows]
+    needs: [build-android, build-ios, build-macos, build-linux, build-linux-cross]
 
     steps:
       - uses: actions/checkout@v4
