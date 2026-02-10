@@ -1,6 +1,6 @@
 use std::ffi::CString;
 
-use crate::extractor::Extractor;
+use super::extractor::Extractor;
 
 /// ncnn Net — neural network model container.
 ///
@@ -22,7 +22,7 @@ impl Net {
     }
 
     /// Set option for this net.
-    pub fn set_option(&mut self, opt: &crate::NcnnOption) {
+    pub fn set_option(&mut self, opt: &super::NcnnOption) {
         unsafe { ncnn_sys::ncnn_net_set_option(self.raw, opt.as_ptr()) }
     }
 

@@ -58,12 +58,12 @@ impl Option {
     }
 
     /// Set blob allocator.
-    pub fn set_blob_allocator(&mut self, allocator: &crate::Allocator) {
+    pub fn set_blob_allocator(&mut self, allocator: &super::Allocator) {
         unsafe { ncnn_sys::ncnn_option_set_blob_allocator(self.raw, allocator.as_ptr()) }
     }
 
     /// Set workspace allocator.
-    pub fn set_workspace_allocator(&mut self, allocator: &crate::Allocator) {
+    pub fn set_workspace_allocator(&mut self, allocator: &super::Allocator) {
         unsafe { ncnn_sys::ncnn_option_set_workspace_allocator(self.raw, allocator.as_ptr()) }
     }
 }

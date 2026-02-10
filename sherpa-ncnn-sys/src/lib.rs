@@ -1,7 +1,7 @@
 //! Raw FFI bindings to sherpa-ncnn C API
 //!
 //! This crate provides low-level FFI bindings to the sherpa-ncnn library.
-//! For a safe, idiomatic Rust API, use the `sherpa-ncnn` crate instead.
+//! For a safe, idiomatic Rust API, use the `sherpa_ncnn` crate (package `sherpa-ncnn-rs`).
 
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]

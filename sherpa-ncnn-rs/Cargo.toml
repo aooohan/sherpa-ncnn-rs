@@ -1,5 +1,5 @@
 [package]
-name = "sherpa-ncnn"
+name = "sherpa-ncnn-rs"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -14,6 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 sherpa-ncnn-sys = { path = "../sherpa-ncnn-sys" }
+ncnn-sys = { path = "../ncnn-sys", optional = true }
 thiserror = "1.0"
 
 [dev-dependencies]
@@ -22,11 +23,17 @@ hound = "3.5"
 [features]
 default = ["download-binaries"]
 download-binaries = ["sherpa-ncnn-sys/download-binaries"]
+ncnn = ["dep:ncnn-sys"]
 
 [[example]]
 name = "transcribe"
-path = "../../examples/transcribe.rs"
+path = "../examples/transcribe.rs"
 
 [[example]]
 name = "streaming"
-path = "../../examples/streaming.rs"
+path = "../examples/streaming.rs"
+
+[[example]]
+name = "ncnn-simple"
+path = "../examples/ncnn-simple.rs"
+required-features = ["ncnn"]

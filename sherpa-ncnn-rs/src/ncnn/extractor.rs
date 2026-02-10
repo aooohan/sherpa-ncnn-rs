@@ -1,6 +1,6 @@
 use std::ffi::CString;
 
-use crate::mat::Mat;
+use super::mat::Mat;
 
 /// ncnn Extractor — runs inference on a loaded Net.
 ///
@@ -24,7 +24,7 @@ impl Extractor {
     }
 
     /// Set option for this extractor.
-    pub fn set_option(&mut self, opt: &crate::NcnnOption) {
+    pub fn set_option(&mut self, opt: &super::NcnnOption) {
         unsafe { ncnn_sys::ncnn_extractor_set_option(self.raw, opt.as_ptr()) }
     }
 
