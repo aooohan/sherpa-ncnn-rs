@@ -114,7 +114,11 @@ fn merge_static_libs(lib_paths: &[PathBuf], output: &Path, target_os: &str) -> b
         return false;
     }
 
-    debug_log!("Merging {} static libs into {}", lib_paths.len(), output.display());
+    debug_log!(
+        "Merging {} static libs into {}",
+        lib_paths.len(),
+        output.display()
+    );
 
     let status = if target_os == "macos" || target_os == "ios" {
         Command::new("libtool")
@@ -130,11 +134,7 @@ fn merge_static_libs(lib_paths: &[PathBuf], output: &Path, target_os: &str) -> b
             .map(|p| format!("ADDLIB {}", p.display()))
             .collect::<Vec<_>>()
             .join("\n");
-        let mri_content = format!(
-            "CREATE {}\n{}\nSAVE\nEND\n",
-            output.display(),
-            mri_script
-        );
+        let mri_content = format!("CREATE {}\n{}\nSAVE\nEND\n", output.display(), mri_script);
 
         let mri_path = output.with_extension("mri");
         std::fs::write(&mri_path, &mri_content).expect("Failed to write MRI script");
@@ -198,6 +198,9 @@ fn main() {
     );
 
     debug_log!("Using library path: {}", lib_path.display());
+
+    // Export library path for other crates (e.g. ncnn-sys) to discover
+    println!("cargo:lib-path={}", lib_path.display());
 
     // Add library search path
     let lib_dir = lib_path.join("lib");
