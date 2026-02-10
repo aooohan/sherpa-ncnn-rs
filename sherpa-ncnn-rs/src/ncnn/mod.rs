@@ -28,7 +28,7 @@ mod option;
 
 pub use allocator::Allocator;
 pub use extractor::Extractor;
-pub use mat::Mat;
+pub use mat::{BorderType, Mat, PixelType};
 pub use net::Net;
 pub use option::Option as NcnnOption;
 

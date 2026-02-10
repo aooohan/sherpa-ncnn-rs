@@ -1,4 +1,26 @@
+use std::ffi::c_int;
 use std::ptr;
+
+/// Pixel format for `Mat::from_pixels*` methods.
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PixelType {
+    Rgb = ncnn_sys::NCNN_MAT_PIXEL_RGB,
+    Bgr = ncnn_sys::NCNN_MAT_PIXEL_BGR,
+    Gray = ncnn_sys::NCNN_MAT_PIXEL_GRAY,
+    Rgba = ncnn_sys::NCNN_MAT_PIXEL_RGBA,
+    Bgra = ncnn_sys::NCNN_MAT_PIXEL_BGRA,
+}
+
+/// Border type for `Mat::copy_make_border`.
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BorderType {
+    Constant = ncnn_sys::NCNN_BORDER_CONSTANT,
+    Replicate = ncnn_sys::NCNN_BORDER_REPLICATE,
+    Reflect = ncnn_sys::NCNN_BORDER_REFLECT,
+    Transparent = ncnn_sys::NCNN_BORDER_TRANSPARENT,
+}
 
 /// ncnn Mat — multi-dimensional array (tensor) for network input/output.
 pub struct Mat {
@@ -240,6 +262,126 @@ impl Mat {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = unsafe { ncnn_sys::ncnn_mat_reshape_4d(self.raw, w, h, d, c, alloc) };
         Self { raw }
+    }
+
+    /// Create a Mat from pixel data.
+    ///
+    /// `pixels` must have at least `h * stride` bytes.
+    /// `stride` is the number of bytes per row (often `w * channels`).
+    pub fn from_pixels(
+        pixels: &[u8],
+        pixel_type: PixelType,
+        w: i32,
+        h: i32,
+        stride: i32,
+        allocator: std::option::Option<&super::Allocator>,
+    ) -> Self {
+        let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
+        let raw = unsafe {
+            ncnn_sys::ncnn_mat_from_pixels(
+                pixels.as_ptr(),
+                pixel_type as c_int,
+                w,
+                h,
+                stride,
+                alloc,
+            )
+        };
+        Self { raw }
+    }
+
+    /// Create a Mat from pixel data with resize.
+    ///
+    /// `pixels` must have at least `h * stride` bytes.
+    /// The result Mat will have dimensions `target_width x target_height`.
+    pub fn from_pixels_resize(
+        pixels: &[u8],
+        pixel_type: PixelType,
+        w: i32,
+        h: i32,
+        stride: i32,
+        target_width: i32,
+        target_height: i32,
+        allocator: std::option::Option<&super::Allocator>,
+    ) -> Self {
+        let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
+        let raw = unsafe {
+            ncnn_sys::ncnn_mat_from_pixels_resize(
+                pixels.as_ptr(),
+                pixel_type as c_int,
+                w,
+                h,
+                stride,
+                target_width,
+                target_height,
+                alloc,
+            )
+        };
+        Self { raw }
+    }
+
+    /// Copy this Mat with border padding.
+    ///
+    /// `border_type` controls padding mode, `v` is the fill value for `BorderType::Constant`.
+    pub fn copy_make_border(
+        &self,
+        top: i32,
+        bottom: i32,
+        left: i32,
+        right: i32,
+        border_type: BorderType,
+        v: f32,
+        opt: &super::NcnnOption,
+    ) -> Self {
+        let dst = Self::new();
+        unsafe {
+            ncnn_sys::ncnn_copy_make_border(
+                self.raw,
+                dst.raw,
+                top,
+                bottom,
+                left,
+                right,
+                border_type as c_int,
+                v,
+                opt.as_ptr(),
+            );
+        }
+        dst
+    }
+
+    /// Copy this Mat with 3D border padding.
+    ///
+    /// Adds padding in all 3 dimensions (top/bottom, left/right, front/behind).
+    pub fn copy_make_border_3d(
+        &self,
+        top: i32,
+        bottom: i32,
+        left: i32,
+        right: i32,
+        front: i32,
+        behind: i32,
+        border_type: BorderType,
+        v: f32,
+        opt: &super::NcnnOption,
+    ) -> Self {
+        let dst = Self::new();
+        unsafe {
+            ncnn_sys::ncnn_copy_make_border_3d(
+                self.raw,
+                dst.raw,
+                top,
+                bottom,
+                left,
+                right,
+                front,
+                behind,
+                border_type as c_int,
+                v,
+                opt.as_ptr(),
+            );
+        }
+        dst
     }
 }
 
