@@ -2,7 +2,7 @@ use std::env;
 use std::error::Error;
 use std::str::FromStr;
 
-use ncnn::{Mat, Net};
+use sherpa_ncnn::ncnn::{Mat, Net};
 
 fn parse_dim(args: &[String], idx: usize, default: i32) -> Result<i32, Box<dyn Error>> {
     if args.len() > idx {

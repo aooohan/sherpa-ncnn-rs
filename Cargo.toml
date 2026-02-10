@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["ncnn-sys", "ncnn", "sherpa-ncnn-sys", "sherpa-ncnn-rs"]
+members = ["ncnn-sys", "sherpa-ncnn-sys", "sherpa-ncnn-rs"]
 
 [workspace.package]
 version = "0.1.0"

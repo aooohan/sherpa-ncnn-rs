@@ -33,6 +33,9 @@ mod recognizer;
 mod stream;
 mod vad;
 
+#[cfg(feature = "ncnn")]
+pub mod ncnn;
+
 pub use error::{Error, Result};
 pub use recognizer::{DecoderConfig, FeatureConfig, ModelConfig, Recognizer, RecognizerConfig};
 pub use stream::Stream;

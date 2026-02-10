@@ -13,14 +13,14 @@ impl Mat {
     }
 
     /// Create a 1D Mat with width `w`.
-    pub fn new_1d(w: i32, allocator: std::option::Option<&crate::Allocator>) -> Self {
+    pub fn new_1d(w: i32, allocator: std::option::Option<&super::Allocator>) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = unsafe { ncnn_sys::ncnn_mat_create_1d(w, alloc) };
         Self { raw }
     }
 
     /// Create a 2D Mat with width `w` and height `h`.
-    pub fn new_2d(w: i32, h: i32, allocator: std::option::Option<&crate::Allocator>) -> Self {
+    pub fn new_2d(w: i32, h: i32, allocator: std::option::Option<&super::Allocator>) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = unsafe { ncnn_sys::ncnn_mat_create_2d(w, h, alloc) };
         Self { raw }
@@ -31,7 +31,7 @@ impl Mat {
         w: i32,
         h: i32,
         c: i32,
-        allocator: std::option::Option<&crate::Allocator>,
+        allocator: std::option::Option<&super::Allocator>,
     ) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = unsafe { ncnn_sys::ncnn_mat_create_3d(w, h, c, alloc) };
@@ -44,7 +44,7 @@ impl Mat {
         h: i32,
         d: i32,
         c: i32,
-        allocator: std::option::Option<&crate::Allocator>,
+        allocator: std::option::Option<&super::Allocator>,
     ) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = unsafe { ncnn_sys::ncnn_mat_create_4d(w, h, d, c, alloc) };
@@ -58,7 +58,7 @@ impl Mat {
     pub unsafe fn from_external_1d(
         w: i32,
         data: *mut f32,
-        allocator: std::option::Option<&crate::Allocator>,
+        allocator: std::option::Option<&super::Allocator>,
     ) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = ncnn_sys::ncnn_mat_create_external_1d(w, data as *mut _, alloc);
@@ -74,7 +74,7 @@ impl Mat {
         h: i32,
         c: i32,
         data: *mut f32,
-        allocator: std::option::Option<&crate::Allocator>,
+        allocator: std::option::Option<&super::Allocator>,
     ) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = ncnn_sys::ncnn_mat_create_external_3d(w, h, c, data as *mut _, alloc);
@@ -106,7 +106,7 @@ impl Mat {
     }
 
     /// Clone this Mat.
-    pub fn try_clone(&self, allocator: std::option::Option<&crate::Allocator>) -> Self {
+    pub fn try_clone(&self, allocator: std::option::Option<&super::Allocator>) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = unsafe { ncnn_sys::ncnn_mat_clone(self.raw, alloc) };
         Self { raw }
@@ -197,7 +197,7 @@ impl Mat {
     }
 
     /// Reshape to 1D.
-    pub fn reshape_1d(&self, w: i32, allocator: std::option::Option<&crate::Allocator>) -> Self {
+    pub fn reshape_1d(&self, w: i32, allocator: std::option::Option<&super::Allocator>) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = unsafe { ncnn_sys::ncnn_mat_reshape_1d(self.raw, w, alloc) };
         Self { raw }
@@ -208,7 +208,7 @@ impl Mat {
         &self,
         w: i32,
         h: i32,
-        allocator: std::option::Option<&crate::Allocator>,
+        allocator: std::option::Option<&super::Allocator>,
     ) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = unsafe { ncnn_sys::ncnn_mat_reshape_2d(self.raw, w, h, alloc) };
@@ -221,7 +221,7 @@ impl Mat {
         w: i32,
         h: i32,
         c: i32,
-        allocator: std::option::Option<&crate::Allocator>,
+        allocator: std::option::Option<&super::Allocator>,
     ) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = unsafe { ncnn_sys::ncnn_mat_reshape_3d(self.raw, w, h, c, alloc) };
@@ -235,7 +235,7 @@ impl Mat {
         h: i32,
         d: i32,
         c: i32,
-        allocator: std::option::Option<&crate::Allocator>,
+        allocator: std::option::Option<&super::Allocator>,
     ) -> Self {
         let alloc = allocator.map_or(ptr::null_mut(), |a| a.as_ptr());
         let raw = unsafe { ncnn_sys::ncnn_mat_reshape_4d(self.raw, w, h, d, c, alloc) };

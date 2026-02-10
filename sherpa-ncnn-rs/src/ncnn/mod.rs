@@ -1,12 +1,12 @@
 //! Safe Rust bindings for the ncnn neural network inference framework.
 //!
-//! This crate wraps the ncnn C API (matching the version bundled with sherpa-ncnn 2.1.15)
+//! This module wraps the ncnn C API (matching the version bundled with sherpa-ncnn 2.1.15)
 //! and provides safe, idiomatic Rust types for `Net`, `Mat`, `Extractor`, and `Option`.
 //!
 //! # Example
 //!
 //! ```no_run
-//! use ncnn::{Net, Mat};
+//! use sherpa_ncnn::ncnn::{Net, Mat};
 //!
 //! let mut net = Net::new();
 //! net.load_param("model.param").unwrap();
