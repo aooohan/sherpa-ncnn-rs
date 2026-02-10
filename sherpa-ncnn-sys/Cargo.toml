@@ -8,10 +8,14 @@ repository.workspace = true
 description = "Raw FFI bindings to sherpa-ncnn C API"
 keywords = ["audio", "speech-recognition", "sherpa", "ncnn", "asr"]
 build = "build.rs"
+links = "sherpa_ncnn"
 
 [lib]
 name = "sherpa_ncnn_sys"
 path = "src/lib.rs"
+
+[dependencies]
+ncnn-sys = { path = "../ncnn-sys" }
 
 [build-dependencies]
 bindgen = "0.69"

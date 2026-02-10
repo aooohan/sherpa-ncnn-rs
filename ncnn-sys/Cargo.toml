@@ -8,6 +8,7 @@ repository.workspace = true
 description = "Raw FFI bindings to ncnn C API (matching sherpa-ncnn bundled version)"
 keywords = ["ncnn", "neural-network", "inference", "ffi"]
 build = "build.rs"
+links = "ncnn"
 
 [lib]
 name = "ncnn_sys"

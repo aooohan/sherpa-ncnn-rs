@@ -14,3 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 ncnn-sys = { path = "../ncnn-sys" }
+
+[[example]]
+name = "ncnn-simple"
+path = "../examples/ncnn-simple.rs"
